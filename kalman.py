@@ -38,7 +38,7 @@ if __name__ == '__main__':
     phi = np.array([[1]])
     gamma = np.array([[1]])
     delta = np.array([[1]])
-    cv = np.array([[5]])
+    cv = np.array([[1]])
     cw = np.array([[30 ** 2]])
     kf = KalmanFilter(x_0, p, phi, gamma, delta, cv, cw)
 
@@ -51,9 +51,9 @@ if __name__ == '__main__':
     estimates = []
 
     for i in range(nb_steps):
-        true_position += step_size
+        true_position += step_size + np.random.randn()
         measurement = true_position + np.random.randn() * 25
-        kf.step(np.array([[step_size + np.random.randn()]]))
+        kf.step(np.array([[step_size]]))
         kf.measure(measurement)
 
         true_positions.append(true_position)

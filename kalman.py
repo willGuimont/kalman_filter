@@ -14,15 +14,16 @@ class KalmanFilter:
         self._cv = cv
         self._cw = cw
 
-    def step(self, u, measure=None):
+    def step(self, u):
         self._x_hat = self._phi @ self._x_hat + self._gamma @ u
         self._p = self._phi @ self._p @ self._phi.T + self._cv
-        if measure is not None:
-            z_hat = self._delta @ self._x_hat
-            r = measure - z_hat
-            k = self._p @ self._delta.T @ np.linalg.pinv(self._delta @ self._p @ self._delta.T + self._cw)
-            self._x_hat = self._x_hat + k @ r
-            self._p = (np.identity(self._num_states) - k @ self._delta) @ self._p
+
+    def measure(self, measure):
+        z_hat = self._delta @ self._x_hat
+        r = measure - z_hat
+        k = self._p @ self._delta.T @ np.linalg.pinv(self._delta @ self._p @ self._delta.T + self._cw)
+        self._x_hat = self._x_hat + k @ r
+        self._p = (np.identity(self._num_states) - k @ self._delta) @ self._p
 
     @property
     def x_hat(self):
@@ -37,8 +38,8 @@ if __name__ == '__main__':
     phi = np.array([[1]])
     gamma = np.array([[1]])
     delta = np.array([[1]])
-    cv = np.array([[1]])
-    cw = np.array([[15 ** 2]])
+    cv = np.array([[5]])
+    cw = np.array([[30 ** 2]])
     kf = KalmanFilter(x_0, p, phi, gamma, delta, cv, cw)
 
     true_position = 0
@@ -51,8 +52,9 @@ if __name__ == '__main__':
 
     for i in range(nb_steps):
         true_position += step_size
-        measurement = true_position + np.random.randn() * 10
-        kf.step(np.array([[step_size]]), measurement)
+        measurement = true_position + np.random.randn() * 25
+        kf.step(np.array([[step_size + np.random.randn()]]))
+        kf.measure(measurement)
 
         true_positions.append(true_position)
         measurements.append(measurement)

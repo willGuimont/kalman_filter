@@ -31,23 +31,50 @@ class KalmanFilter:
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    positions = list(range(100))
-    kf = KalmanFilter(np.array([[0, 0]]).T,
-                      np.ones((2, 2)) * 5,
-                      np.array([[1, 1], [0, 0]]),
-                      np.array([[0, 0]]).T,
-                      np.array([[1, 0]]),
-                      np.array([[1, 0]]).T,
-                      np.array([[20]]))
+
+    x_0 = np.array([[0]])
+    p = np.array([[1]]) * 1
+    phi = np.array([[1]])
+    gamma = np.array([[1]])
+    delta = np.array([[1]])
+    cv = np.array([[1]])
+    cw = np.array([[15 ** 2]])
+    kf = KalmanFilter(x_0, p, phi, gamma, delta, cv, cw)
+
+    true_position = 0
+    nb_steps = 100
+    step_size = 1
+
+    true_positions = []
+    measurements = []
     estimates = []
-    measures = []
-    for p in positions:
-        p += np.random.randn() * 5
-        measures.append(p)
-        kf.step(np.array([1]), p)
+
+    for i in range(nb_steps):
+        true_position += step_size
+        measurement = true_position + np.random.randn() * 10
+        kf.step(np.array([[step_size]]), measurement)
+
+        true_positions.append(true_position)
+        measurements.append(measurement)
         estimates.append(kf.x_hat)
 
-    plt.plot(positions)
-    plt.plot(list(map(lambda x: x[0], estimates)))
-    plt.scatter(range(len(measures)), measures)
+    estimates = np.array(estimates).squeeze()
+
+
+    def moving_average(a, n=3):
+        ret = np.cumsum(a, dtype=float)
+        ret[n:] = ret[n:] - ret[:-n]
+        return ret[n - 1:] / n
+
+
+    m_average = moving_average(measurements, n=5)
+
+    plt.plot(range(nb_steps), true_positions, label='true_positions')
+    plt.scatter(range(nb_steps), measurements, marker='x', label='measurements')
+    plt.plot(range(nb_steps), estimates, label='estimates')
+    plt.plot(range(len(m_average)), m_average, label='moving average')
+    plt.title('Kalman filter')
+    plt.xlabel('time')
+    plt.ylabel('position')
+    plt.legend()
     plt.show()

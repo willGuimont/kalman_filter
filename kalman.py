@@ -33,7 +33,7 @@ class KalmanFilter:
         self._x_hat = self._phi @ self._x_hat + self._gamma @ u
         self._p = self._phi @ self._p @ self._phi.T + self._cv
 
-    def measure(self, measure):
+    def update(self, measure):
         """
         Update the Kalman filter with a measure
         :param measure: measurement made
@@ -74,7 +74,7 @@ if __name__ == '__main__':
         true_position += step_size + np.random.randn()
         measurement = true_position + np.random.randn() * 25
         kf.step(np.array([[step_size]]))
-        kf.measure(measurement)
+        kf.update(measurement)
 
         true_positions.append(true_position)
         measurements.append(measurement)

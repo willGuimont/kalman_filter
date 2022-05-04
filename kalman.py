@@ -53,33 +53,47 @@ class KalmanFilter:
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    x_0 = np.array([[0]])
-    p = np.array([[1]]) * 1
-    phi = np.array([[1]])
-    gamma = np.array([[1]])
-    delta = np.array([[1]])
-    cv = np.array([[1]])
+    dt = 1
+    x_0 = np.array([[0], [0]])
+    p = np.array([[1, 0], [0, 1]]) * 1
+    phi = np.array([[1, dt], [0, 1]])
+    gamma = np.array([[0.5 * dt ** 2], [dt]])
+    delta = np.array([[1, 0]])
+    cv = np.array([[2, 0], [0, 2]])
     cw = np.array([[30 ** 2]])
     kf = KalmanFilter(x_0, p, phi, gamma, delta, cv, cw)
 
     true_position = 0
-    nb_steps = 100
-    step_size = 1
+    true_speed = 0
+    nb_steps = 200
+    time = 0
 
     true_positions = []
+    true_speeds = []
     measurements = []
     estimates = []
 
     for i in range(nb_steps):
-        true_position += step_size + np.random.randn()
+        time += dt
+        command = np.array([[0.5 * np.cos(time / (nb_steps * dt / 2) * 2 * np.pi)]])
+
+        # update true localization
+        noised_command = command + np.random.randn() * 0.2 * np.abs(np.linalg.norm(command))
+        true_position = true_position + true_speed * dt + 0.5 * noised_command * dt ** 2
+        true_speed = true_speed + noised_command * dt
+
         measurement = true_position + np.random.randn() * 25
-        kf.step(np.array([[step_size]]))
+        kf.step(command)
         kf.update(measurement)
 
         true_positions.append(true_position)
+        true_speeds.append(true_speed)
         measurements.append(measurement)
         estimates.append(kf.x_hat)
 
+    true_positions = np.array(true_positions).squeeze()
+    true_speeds = np.array(true_speeds).squeeze()
+    measurements = np.array(measurements).squeeze()
     estimates = np.array(estimates).squeeze()
 
 
@@ -89,12 +103,22 @@ if __name__ == '__main__':
         return ret[n - 1:] / n
 
 
-    m_average = moving_average(measurements, n=5)
+    def exponential_average(a, w):
+        out = np.zeros_like(a)
+        out[0] = a[0]
+        for i in range(1, len(a)):
+            out[i] = (1 - w) * out[i - 1] + w * a[i]
+        return out
 
-    plt.plot(range(nb_steps), true_positions, label='true_positions')
-    plt.scatter(range(nb_steps), measurements, marker='x', label='measurements')
-    plt.plot(range(nb_steps), estimates, label='estimates')
-    plt.plot(range(len(m_average)), m_average, label='moving average')
+
+    m_average = moving_average(measurements, n=5)
+    exp_average = exponential_average(measurements, 0.3)
+
+    plt.plot(range(nb_steps), true_positions, label='True position')
+    plt.scatter(range(nb_steps), measurements, marker='x', label='Measurements')
+    plt.plot(range(nb_steps), estimates[:, 0], label='Kalman filter')
+    plt.plot(range(len(m_average)), m_average, label='Moving average')
+    plt.plot(range(len(exp_average)), exp_average, label='Exponential average')
     plt.title('Kalman filter')
     plt.xlabel('time')
     plt.ylabel('position')
